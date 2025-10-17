@@ -1,5 +1,8 @@
 # FormDurationTracker
 
+[![Coverage](https://img.shields.io/badge/coverage-89.34%25-brightgreen)](coverage)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
+
 A robust Rails gem for tracking how long users take to fill out forms. This gem provides controller and model concerns to manage session-based timestamp tracking with customizable expiry times, validations, and update prevention.
 
 ## Features
@@ -603,6 +606,19 @@ end
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+### Test Coverage
+
+This gem uses [SimpleCov](https://github.com/simplecov-ruby/simplecov) to track test coverage. Current coverage: **89.34%**
+
+To generate a coverage report:
+
+```bash
+bundle exec rspec
+open coverage/index.html  # View detailed coverage report
+```
+
+Coverage reports are generated in the `coverage/` directory and are excluded from version control.
 
 ## Contributing
 
