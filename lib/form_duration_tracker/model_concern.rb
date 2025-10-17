@@ -13,9 +13,9 @@ module FormDurationTracker
           define_method("validate_#{attribute_name}_not_in_future") do
             return if send(attribute_name).blank?
 
-            if send(attribute_name) > Time.zone.now
-              errors.add(attribute_name, "can't be in the future")
-            end
+            return unless send(attribute_name) > Time.zone.now + 1.second
+
+            errors.add(attribute_name, "can't be in the future")
           end
         end
 
@@ -23,36 +23,36 @@ module FormDurationTracker
           before_validation :"prevent_#{attribute_name}_change", on: :update
           define_method("prevent_#{attribute_name}_change") do
             attribute_was = send("#{attribute_name}_was")
-            if persisted? && send("#{attribute_name}_changed?") && attribute_was.present?
-              send("#{attribute_name}=", attribute_was)
-            end
+            return unless persisted? && send("#{attribute_name}_changed?") && attribute_was.present?
+
+            send("#{attribute_name}=", attribute_was)
           end
         end
 
         if options[:validate_max_duration]
-          max_duration = options[:max_duration]
+          max_duration = options[:validate_max_duration]
           validate :"validate_#{attribute_name}_max_duration", on: :create
           define_method("validate_#{attribute_name}_max_duration") do
             return if send(attribute_name).blank?
 
             duration = Time.zone.now - send(attribute_name)
-            if duration > max_duration
-              errors.add(attribute_name, "form took too long to complete (max: #{max_duration / 60} minutes)")
-            end
+            return unless duration > max_duration
+
+            errors.add(attribute_name, "form took too long to complete (max: #{max_duration / 60.0} minutes)")
           end
         end
 
-        if options[:validate_min_duration]
-          min_duration = options[:min_duration]
-          validate :"validate_#{attribute_name}_min_duration", on: :create
-          define_method("validate_#{attribute_name}_min_duration") do
-            return if send(attribute_name).blank?
+        return unless options[:validate_min_duration]
 
-            duration = Time.zone.now - send(attribute_name)
-            if duration < min_duration
-              errors.add(attribute_name, "form was completed too quickly (min: #{min_duration} seconds)")
-            end
-          end
+        min_duration = options[:validate_min_duration]
+        validate :"validate_#{attribute_name}_min_duration", on: :create
+        define_method("validate_#{attribute_name}_min_duration") do
+          return if send(attribute_name).blank?
+
+          duration = Time.zone.now - send(attribute_name)
+          return unless duration < min_duration
+
+          errors.add(attribute_name, "form was completed too quickly (min: #{min_duration} seconds)")
         end
       end
     end
