@@ -1,0 +1,58 @@
+require 'rails_helper'
+
+RSpec.describe <%= model_name.camelize %>, type: :model do
+  describe 'form duration tracking' do
+    subject { build(:<%= model_file_name %>) }
+
+    describe 'validations' do
+      it 'requires <%= attribute_name %> on create' do
+        subject.<%= attribute_name %> = nil
+        expect(subject).not_to be_valid
+        expect(subject.errors[:<%= attribute_name %>]).to include("can't be blank")
+      end
+<% if options[:prevent_future] -%>
+
+      it 'rejects future timestamps' do
+        subject.<%= attribute_name %> = 1.hour.from_now
+        expect(subject).not_to be_valid
+        expect(subject.errors[:<%= attribute_name %>]).to include("can't be in the future")
+      end
+
+      it 'accepts past timestamps' do
+        subject.<%= attribute_name %> = 10.minutes.ago
+        expect(subject).to be_valid
+      end
+<% end -%>
+<% if options[:validate_max_duration] -%>
+
+      it 'rejects forms that took too long' do
+        subject.<%= attribute_name %> = <%= options[:validate_max_duration] %>.ago - 1.minute
+        expect(subject).not_to be_valid
+        expect(subject.errors[:<%= attribute_name %>]).to include(/took too long/)
+      end
+<% end -%>
+<% if options[:validate_min_duration] -%>
+
+      it 'rejects forms completed too quickly' do
+        subject.<%= attribute_name %> = 1.second.ago
+        expect(subject).not_to be_valid
+        expect(subject.errors[:<%= attribute_name %>]).to include(/too quickly/)
+      end
+<% end -%>
+    end
+<% if options[:prevent_update] -%>
+
+    describe 'update prevention' do
+      it 'prevents updating <%= attribute_name %> after creation' do
+        <%= model_file_name %> = create(:<%= model_file_name %>, <%= attribute_name %>: 1.hour.ago)
+        original_time = <%= model_file_name %>.<%= attribute_name %>
+
+        <%= model_file_name %>.update(<%= attribute_name %>: Time.zone.now)
+        <%= model_file_name %>.reload
+
+        expect(<%= model_file_name %>.<%= attribute_name %>).to be_within(1.second).of(original_time)
+      end
+    end
+<% end -%>
+  end
+end

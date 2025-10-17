@@ -1,0 +1,98 @@
+require 'rails_helper'
+
+RSpec.describe <%= controller_class_name %>, type: :controller do
+  describe 'form duration tracking' do
+<% unless options[:auto_initialize] -%>
+    describe 'GET #new' do
+      it 'initializes session timestamp' do
+        get :new
+
+        expect(session[:<%= attribute_name %>_timestamp]).to be_present
+      end
+<% if options[:expirable] -%>
+
+      it 'sets session expiry time' do
+        get :new
+
+        expect(session[:<%= attribute_name %>_timestamp_expires_at]).to be_present
+      end
+<% end -%>
+    end
+
+<% end -%>
+    describe 'POST #create' do
+      let(:valid_params) do
+        {
+          <%= model_file_name %>: attributes_for(:<%= model_file_name %>)
+        }
+      end
+
+      context 'with session timestamp' do
+        before do
+          session[:<%= attribute_name %>_timestamp] = 10.minutes.ago.to_s
+<% if options[:expirable] -%>
+          session[:<%= attribute_name %>_timestamp_expires_at] = 1.hour.from_now.to_s
+<% end -%>
+        end
+
+        it 'uses session timestamp' do
+          post :create, params: valid_params
+
+          <%= model_file_name %> = <%= model_name.camelize %>.last
+          expect(<%= model_file_name %>.<%= attribute_name %>).to be_within(1.second).of(10.minutes.ago)
+        end
+
+        it 'cleans up session on success' do
+          post :create, params: valid_params
+
+          expect(session[:<%= attribute_name %>_timestamp]).to be_nil
+<% if options[:expirable] -%>
+          expect(session[:<%= attribute_name %>_timestamp_expires_at]).to be_nil
+<% end -%>
+        end
+      end
+<% if options[:expirable] -%>
+
+      context 'with expired session' do
+        before do
+          session[:<%= attribute_name %>_timestamp] = 1.hour.ago.to_s
+          session[:<%= attribute_name %>_timestamp_expires_at] = 30.minutes.ago.to_s
+        end
+
+        it 'falls back to current time' do
+          Timecop.freeze do
+            post :create, params: valid_params
+
+            <%= model_file_name %> = <%= model_name.camelize %>.last
+            expect(<%= model_file_name %>.<%= attribute_name %>).to be_within(1.second).of(Time.zone.now)
+          end
+        end
+      end
+<% end -%>
+
+      context 'with validation errors' do
+        let(:invalid_params) do
+          {
+            <%= model_file_name %>: attributes_for(:<%= model_file_name %>, <%= attribute_name %>: nil)
+          }
+        end
+
+        before do
+          session[:<%= attribute_name %>_timestamp] = 10.minutes.ago.to_s
+        end
+
+        it 'preserves session timestamp' do
+          post :create, params: invalid_params
+
+          expect(session[:<%= attribute_name %>_timestamp]).to be_present
+        end
+
+        it 're-renders form' do
+          post :create, params: invalid_params
+
+          expect(response).to render_template(:new)
+        end
+      end
+    end
+  end
+end

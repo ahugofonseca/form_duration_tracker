@@ -1,0 +1,122 @@
+===============================================================================
+
+  FormDurationTracker has been installed!
+
+===============================================================================
+
+Next steps:
+
+  1. Run the migration:
+
+      $ rails db:migrate
+
+  2. Review the changes in:
+
+      - app/models/<%= model_file_name %>.rb
+      - app/controllers/<%= controller_path %>.rb
+<% unless options[:skip_tests] -%>
+<% if detected_test_framework == :rspec -%>
+      - spec/models/<%= model_file_name %>_spec.rb
+      - spec/controllers/<%= controller_path %>_spec.rb
+<% elsif detected_test_framework == :minitest -%>
+      - test/models/<%= model_file_name %>_test.rb
+      - test/controllers/<%= controller_path %>_test.rb
+<% end -%>
+<% end -%>
+
+  3. Update your controller methods (if needed):
+
+<% if auto_params_enabled? -%>
+      # ✨ Smart auto-params enabled! Your controller stays clean:
+
+      def new
+        @<%= model_file_name %> = <%= model_name.camelize %>.new
+      end
+
+      def create
+        # <%= attribute_name %> automatically injected into params!
+        @<%= model_file_name %> = <%= model_name.camelize %>.new(<%= model_file_name %>_params)
+
+        if @<%= model_file_name %>.save
+          cleanup_<%= attribute_name %>_session
+          redirect_to @<%= model_file_name %>
+        else
+          preserve_<%= attribute_name %>_in_session(@<%= model_file_name %>.<%= attribute_name %>)
+          render :new
+        end
+      end
+<% else -%>
+<% unless options[:auto_initialize] -%>
+      def new
+        initialize_<%= attribute_name %>_session
+        @<%= model_file_name %> = <%= model_name.camelize %>.new
+      end
+
+<% end -%>
+      def create
+        <%= attribute_name %> = <%= attribute_name %>_from_session
+
+        @<%= model_file_name %> = <%= model_name.camelize %>.new(
+          <%= model_file_name %>_params.merge(<%= attribute_name %>: <%= attribute_name %> || Time.zone.now)
+        )
+
+        if @<%= model_file_name %>.save
+          cleanup_<%= attribute_name %>_session
+          redirect_to @<%= model_file_name %>
+        else
+          preserve_<%= attribute_name %>_in_session(@<%= model_file_name %>.<%= attribute_name %>)
+          render :new
+        end
+      end
+<% end -%>
+
+  4. (Optional) Add hidden field to your form:
+
+      <%= form_for @<%= model_file_name %> do |f| %>
+        <%= f.hidden_field :<%= attribute_name %> %>
+        ...
+      <% end %>
+
+Configuration added:
+
+  Model (<%= model_name.camelize %>):
+    - track_form_duration :<%= attribute_name %>
+<% if options[:prevent_future] -%>
+    - prevent_future: true
+<% end -%>
+<% if options[:prevent_update] -%>
+    - prevent_update: true
+<% end -%>
+<% if options[:validate_max_duration] -%>
+    - validate_max_duration: <%= options[:validate_max_duration] %>
+<% end -%>
+<% if options[:validate_min_duration] -%>
+    - validate_min_duration: <%= options[:validate_min_duration] %>
+<% end -%>
+
+  Controller (<%= controller_class_name %>):
+    - track_form_duration :<%= attribute_name %>
+    - expirable: <%= options[:expirable] %>
+<% if options[:expirable] -%>
+    - expiry_time: <%= smart_expiry_time %>
+<% if @auto_synced -%>
+      (Auto-synced: <%= options[:validate_max_duration] %> + 20% buffer)
+<% end -%>
+<% end -%>
+<% if options[:auto_initialize] -%>
+    - on: :new (automatic initialization)
+<% end -%>
+<% if auto_params_enabled? -%>
+    - ✨ auto_params: enabled (smart inference from 'on:' option)
+<% end -%>
+<% if @auto_synced -%>
+
+  ⏱️  Time Synchronization:
+    - Session expires: <%= smart_expiry_time %>
+    - Form must complete: <%= options[:validate_max_duration] %>
+    - Buffer available: <%= format_duration(parse_duration(smart_expiry_time) - parse_duration(options[:validate_max_duration])) %>
+<% end -%>
+
+For more information, see: https://github.com/indiecampers/form_duration_tracker
+
+===============================================================================

@@ -1,0 +1,80 @@
+require 'test_helper'
+
+class <%= controller_class_name %>Test < ActionDispatch::IntegrationTest
+<% unless options[:auto_initialize] -%>
+  test 'GET new initializes session timestamp' do
+    get new_<%= model_file_name %>_path
+
+    assert session[:<%= attribute_name %>_timestamp].present?
+<% if options[:expirable] -%>
+    assert session[:<%= attribute_name %>_timestamp_expires_at].present?
+<% end -%>
+  end
+
+<% end -%>
+  test 'POST create uses session timestamp' do
+    session[:<%= attribute_name %>_timestamp] = 10.minutes.ago.to_s
+<% if options[:expirable] -%>
+    session[:<%= attribute_name %>_timestamp_expires_at] = 1.hour.from_now.to_s
+<% end -%>
+
+    assert_difference '<%= model_name.camelize %>.count', 1 do
+      post <%= model_name.underscore.pluralize %>_path, params: {
+        <%= model_file_name %>: {
+          # Add required attributes for your model
+        }
+      }
+    end
+
+    <%= model_file_name %> = <%= model_name.camelize %>.last
+    assert_in_delta 10.minutes.ago.to_i, <%= model_file_name %>.<%= attribute_name %>.to_i, 1
+  end
+
+  test 'POST create cleans up session on success' do
+    session[:<%= attribute_name %>_timestamp] = 10.minutes.ago.to_s
+<% if options[:expirable] -%>
+    session[:<%= attribute_name %>_timestamp_expires_at] = 1.hour.from_now.to_s
+<% end -%>
+
+    post <%= model_name.underscore.pluralize %>_path, params: {
+      <%= model_file_name %>: {
+        # Add required attributes
+      }
+    }
+
+    assert_nil session[:<%= attribute_name %>_timestamp]
+<% if options[:expirable] -%>
+    assert_nil session[:<%= attribute_name %>_timestamp_expires_at]
+<% end -%>
+  end
+<% if options[:expirable] -%>
+
+  test 'POST create falls back to current time when session expired' do
+    session[:<%= attribute_name %>_timestamp] = 1.hour.ago.to_s
+    session[:<%= attribute_name %>_timestamp_expires_at] = 30.minutes.ago.to_s
+
+    post <%= model_name.underscore.pluralize %>_path, params: {
+      <%= model_file_name %>: {
+        # Add required attributes
+      }
+    }
+
+    <%= model_file_name %> = <%= model_name.camelize %>.last
+    assert_in_delta Time.zone.now.to_i, <%= model_file_name %>.<%= attribute_name %>.to_i, 2
+  end
+<% end -%>
+
+  test 'POST create preserves session on validation error' do
+    session[:<%= attribute_name %>_timestamp] = 10.minutes.ago.to_s
+
+    post <%= model_name.underscore.pluralize %>_path, params: {
+      <%= model_file_name %>: {
+        <%= attribute_name %>: nil
+        # Missing required attributes
+      }
+    }
+
+    assert session[:<%= attribute_name %>_timestamp].present?
+    assert_response :success
+  end
+end

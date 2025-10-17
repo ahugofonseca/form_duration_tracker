@@ -1,0 +1,57 @@
+require 'test_helper'
+
+class <%= model_name.camelize %>Test < ActiveSupport::TestCase
+  test '<%= attribute_name %> is required on create' do
+    <%= model_file_name %> = <%= model_name.camelize %>.new
+    assert_not <%= model_file_name %>.valid?
+    assert_includes <%= model_file_name %>.errors[:<%= attribute_name %>], "can't be blank"
+  end
+
+  test 'valid with <%= attribute_name %>' do
+    <%= model_file_name %> = <%= model_name.camelize %>.new(<%= attribute_name %>: 10.minutes.ago)
+    # Add other required attributes for your model
+    assert <%= model_file_name %>.valid?, <%= model_file_name %>.errors.full_messages.join(', ')
+  end
+<% if options[:prevent_future] -%>
+
+  test 'rejects future <%= attribute_name %>' do
+    <%= model_file_name %> = <%= model_name.camelize %>.new(<%= attribute_name %>: 1.hour.from_now)
+    assert_not <%= model_file_name %>.valid?
+    assert_includes <%= model_file_name %>.errors[:<%= attribute_name %>], "can't be in the future"
+  end
+
+  test 'accepts past <%= attribute_name %>' do
+    <%= model_file_name %> = <%= model_name.camelize %>.new(<%= attribute_name %>: 1.hour.ago)
+    # Add other required attributes
+    # assert <%= model_file_name %>.valid?
+  end
+<% end -%>
+<% if options[:validate_max_duration] -%>
+
+  test 'rejects forms that took too long' do
+    <%= model_file_name %> = <%= model_name.camelize %>.new(<%= attribute_name %>: <%= options[:validate_max_duration] %>.ago - 1.minute)
+    assert_not <%= model_file_name %>.valid?
+    assert_match(/took too long/, <%= model_file_name %>.errors[:<%= attribute_name %>].join)
+  end
+<% end -%>
+<% if options[:validate_min_duration] -%>
+
+  test 'rejects forms completed too quickly' do
+    <%= model_file_name %> = <%= model_name.camelize %>.new(<%= attribute_name %>: 1.second.ago)
+    assert_not <%= model_file_name %>.valid?
+    assert_match(/too quickly/, <%= model_file_name %>.errors[:<%= attribute_name %>].join)
+  end
+<% end -%>
+<% if options[:prevent_update] -%>
+
+  test 'prevents updating <%= attribute_name %> after creation' do
+    <%= model_file_name %> = <%= model_name.camelize.pluralize.underscore %>(:<%= model_file_name %>)
+    original_time = <%= model_file_name %>.<%= attribute_name %>
+
+    <%= model_file_name %>.update(<%= attribute_name %>: Time.zone.now)
+    <%= model_file_name %>.reload
+
+    assert_in_delta original_time.to_i, <%= model_file_name %>.<%= attribute_name %>.to_i, 1
+  end
+<% end -%>
+end

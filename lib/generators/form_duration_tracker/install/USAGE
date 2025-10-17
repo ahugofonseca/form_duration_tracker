@@ -1,0 +1,103 @@
+Description:
+    Installs FormDurationTracker for a model and controller with complete setup
+    including migration, model concern, controller concern, and test files.
+
+Example:
+    rails generate form_duration_tracker:install Post started_at
+
+    This will:
+        - Create migration to add started_at column
+        - Inject FormDurationTracker::ModelConcern into Post model
+        - Inject FormDurationTracker::ControllerConcern into PostsController
+        - Generate test files (RSpec or Minitest auto-detected)
+
+Migration Options:
+    --index              Add database index on the column
+    --not-null           Add NOT NULL constraint
+    --check-not-future   Add CHECK constraint to prevent future timestamps (PostgreSQL)
+
+Model Options:
+    --prevent-future            Prevent future timestamps validation
+    --prevent-update            Prevent updating timestamp after creation
+    --validate-max-duration     Maximum form duration (e.g., "2.hours")
+    --validate-min-duration     Minimum form duration (e.g., "5.seconds")
+
+Controller Options:
+    --controller-name           Custom controller name (default: ModelNameController)
+    --expirable                 Enable session expiration (default: true)
+    --no-expirable              Disable session expiration
+    --expiry-time               Session expiry time (default: "2.hours")
+    --auto-initialize           Auto-initialize with before_action on :new
+    --no-auto-initialize        Manual initialization (default)
+
+Test Options:
+    --test-framework            Test framework: rspec or minitest (auto-detected)
+
+Skip Options:
+    --skip-migration            Skip migration generation
+    --skip-model                Skip model modification
+    --skip-controller           Skip controller modification
+    --skip-tests                Skip test file generation
+
+Examples:
+
+    # Basic installation
+    rails g form_duration_tracker:install Post started_at
+
+    # With database constraints
+    rails g form_duration_tracker:install Post started_at \
+      --index \
+      --not-null \
+      --check-not-future
+
+    # With model validations
+    rails g form_duration_tracker:install Post started_at \
+      --prevent-future \
+      --prevent-update \
+      --validate-max-duration 2.hours \
+      --validate-min-duration 5.seconds
+
+    # With automatic controller initialization
+    rails g form_duration_tracker:install Post started_at \
+      --auto-initialize \
+      --expiry-time 1.hour
+
+    # Full featured
+    rails g form_duration_tracker:install Post started_at \
+      --index \
+      --prevent-future \
+      --prevent-update \
+      --validate-max-duration 2.hours \
+      --validate-min-duration 5.seconds \
+      --auto-initialize \
+      --expiry-time 2.hours
+
+    # Custom controller name
+    rails g form_duration_tracker:install Post started_at \
+      --controller-name Admin::PostsController
+
+    # Disable session expiration
+    rails g form_duration_tracker:install Application form_started_at \
+      --no-expirable \
+      --auto-initialize
+
+    # Skip controller modifications
+    rails g form_duration_tracker:install Post started_at \
+      --skip-controller \
+      --prevent-future
+
+    # Specify test framework
+    rails g form_duration_tracker:install Post started_at \
+      --test-framework rspec
+
+    # Custom attribute name
+    rails g form_duration_tracker:install Survey form_started_at \
+      --index \
+      --auto-initialize
+
+Generated Files:
+    - db/migrate/XXXXXX_add_started_at_to_posts.rb
+    - Modified: app/models/post.rb
+    - Modified: app/controllers/posts_controller.rb
+    - spec/models/post_spec.rb (or test/models/post_test.rb)
+    - spec/controllers/posts_controller_spec.rb (or test/controllers/posts_controller_test.rb)
