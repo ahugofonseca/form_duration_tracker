@@ -1,6 +1,7 @@
 # FormDurationTracker
 
-[![Coverage](https://img.shields.io/badge/coverage-95.08%25-brightgreen)](coverage)
+[![Coverage](https://img.shields.io/badge/coverage-95.8%25-brightgreen)](coverage)
+[![RuboCop](https://img.shields.io/badge/code_style-rubocop-brightgreen.svg)](https://github.com/rubocop/rubocop)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
 
 A robust Rails gem for tracking how long users take to fill out forms. This gem provides controller and model concerns to manage session-based timestamp tracking with customizable expiry times, validations, and update prevention.
@@ -607,18 +608,29 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
-### Test Coverage
+### Code Quality
 
-This gem uses [SimpleCov](https://github.com/simplecov-ruby/simplecov) to track test coverage. Current coverage: **95.08%**
+This gem maintains high code quality standards:
 
-To generate a coverage report:
+#### Test Coverage
+
+Uses [SimpleCov](https://github.com/simplecov-ruby/simplecov) to track test coverage. Current coverage: **95.8%**
 
 ```bash
-bundle exec rspec
-open coverage/index.html  # View detailed coverage report
+bundle exec rspec                # Run tests and generate coverage
+open coverage/index.html         # View detailed coverage report
 ```
 
-Coverage reports are generated in the `coverage/` directory and are excluded from version control.
+#### Code Linting
+
+Uses [RuboCop](https://github.com/rubocop/rubocop) for code style enforcement:
+
+```bash
+bundle exec rubocop              # Check for style violations
+bundle exec rubocop --autocorrect-all  # Auto-fix correctable issues
+```
+
+All code follows Ruby community style guidelines with sensible exceptions for DSL methods.
 
 ## Contributing
 

@@ -16,7 +16,8 @@ module FormDurationTracker
 
       class_option :index, type: :boolean, default: false, desc: 'Add database index'
       class_option :not_null, type: :boolean, default: false, desc: 'Add NOT NULL constraint'
-      class_option :check_not_future, type: :boolean, default: false, desc: 'Add CHECK constraint to prevent future timestamps'
+      class_option :check_not_future, type: :boolean, default: false,
+                                      desc: 'Add CHECK constraint to prevent future timestamps'
       class_option :skip_migration, type: :boolean, default: false, desc: 'Skip migration generation'
       class_option :skip_model, type: :boolean, default: false, desc: 'Skip model modification'
       class_option :skip_controller, type: :boolean, default: false, desc: 'Skip controller modification'
@@ -24,9 +25,11 @@ module FormDurationTracker
 
       class_option :controller_name, type: :string, desc: 'Controller name (default: ModelNameController)'
       class_option :expirable, type: :boolean, default: true, desc: 'Enable session expiration'
-      class_option :expiry_time, type: :string, default: '2.hours', desc: 'Session expiry time (e.g., "2.hours", "30.minutes")'
+      class_option :expiry_time, type: :string, default: '2.hours',
+                                 desc: 'Session expiry time (e.g., "2.hours", "30.minutes")'
       class_option :auto_initialize, type: :boolean, default: false, desc: 'Auto-initialize with before_action on :new'
-      class_option :auto_params, type: :boolean, default: nil, desc: 'Auto-inject params (default: inferred from :on option)'
+      class_option :auto_params, type: :boolean, default: nil,
+                                 desc: 'Auto-inject params (default: inferred from :on option)'
       class_option :auto_params_on, type: :array, desc: 'Explicit actions for auto-params injection'
       class_option :param_key, type: :string, desc: 'Custom params key (default: model name singularized)'
 
@@ -35,7 +38,8 @@ module FormDurationTracker
       class_option :validate_max_duration, type: :string, desc: 'Maximum form duration (e.g., "2.hours")'
       class_option :validate_min_duration, type: :string, desc: 'Minimum form duration (e.g., "5.seconds")'
 
-      class_option :test_framework, type: :string, default: nil, desc: 'Test framework: rspec or minitest (auto-detected if not specified)'
+      class_option :test_framework, type: :string, default: nil,
+                                    desc: 'Test framework: rspec or minitest (auto-detected if not specified)'
 
       def self.next_migration_number(dirname)
         ActiveRecord::Generators::Base.next_migration_number(dirname)
@@ -47,6 +51,7 @@ module FormDurationTracker
 
       def create_migration_file
         return if options[:skip_migration]
+
         migration_template 'migration.rb.erb', "db/migrate/add_#{attribute_name}_to_#{table_name}.rb"
       end
 
@@ -62,7 +67,7 @@ module FormDurationTracker
 
         # Check if already included
         if File.read(model_file).include?('FormDurationTracker::ModelConcern')
-          say_status :skip, "Model already includes FormDurationTracker::ModelConcern", :yellow
+          say_status :skip, 'Model already includes FormDurationTracker::ModelConcern', :yellow
         else
           inject_into_class model_file, model_name.camelize do
             "  include FormDurationTracker::ModelConcern\n\n"
@@ -83,13 +88,13 @@ module FormDurationTracker
 
         unless File.exist?(controller_file)
           say_status :error, "Controller file not found: #{controller_file}", :red
-          say_status :info, "You can specify controller with --controller-name option", :blue
+          say_status :info, 'You can specify controller with --controller-name option', :blue
           return
         end
 
         # Check if already included
         if File.read(controller_file).include?('FormDurationTracker::ControllerConcern')
-          say_status :skip, "Controller already includes FormDurationTracker::ControllerConcern", :yellow
+          say_status :skip, 'Controller already includes FormDurationTracker::ControllerConcern', :yellow
         else
           inject_into_class controller_file, controller_class_name do
             "  include FormDurationTracker::ControllerConcern\n\n"
@@ -102,9 +107,9 @@ module FormDurationTracker
           "  #{controller_config}\n"
         end
 
-        unless options[:auto_initialize] || auto_params_enabled?
-          inject_controller_methods(controller_file)
-        end
+        return if options[:auto_initialize] || auto_params_enabled?
+
+        inject_controller_methods(controller_file)
       end
 
       def create_test_files
@@ -116,7 +121,7 @@ module FormDurationTracker
         when :minitest
           create_minitest_tests
         else
-          say_status :skip, "No test framework detected. Use --test-framework option.", :yellow
+          say_status :skip, 'No test framework detected. Use --test-framework option.', :yellow
         end
       end
 
@@ -135,13 +140,11 @@ module FormDurationTracker
       end
 
       def controller_path
-        @controller_path ||= begin
-          if options[:controller_name]
-            options[:controller_name].underscore
-          else
-            "#{model_name.underscore.pluralize}_controller"
-          end
-        end
+        @controller_path ||= if options[:controller_name]
+                               options[:controller_name].underscore
+                             else
+                               "#{model_name.underscore.pluralize}_controller"
+                             end
       end
 
       def controller_class_name
@@ -176,22 +179,23 @@ module FormDurationTracker
         return nil if duration_string.nil?
         return 2.hours if duration_string == '2.hours' # default
 
-        if duration_string.match?(/(\d+(?:\.\d+)?)\.hours?/)
-          $1.to_f.hours
-        elsif duration_string.match?(/(\d+(?:\.\d+)?)\.minutes?/)
-          $1.to_f.minutes
-        elsif duration_string.match?(/(\d+(?:\.\d+)?)\.seconds?/)
-          $1.to_f.seconds
+        case duration_string
+        when /(\d+(?:\.\d+)?)\.hours?/
+          ::Regexp.last_match(1).to_f.hours
+        when /(\d+(?:\.\d+)?)\.minutes?/
+          ::Regexp.last_match(1).to_f.minutes
+        when /(\d+(?:\.\d+)?)\.seconds?/
+          ::Regexp.last_match(1).to_f.seconds
         else
           2.hours # fallback
         end
       end
 
       def format_duration(seconds)
-        if seconds % 1.hour == 0
+        if (seconds % 1.hour).zero?
           hours = seconds / 1.hour
           hours == hours.to_i ? "#{hours.to_i}.hours" : "#{hours}.hours"
-        elsif seconds % 1.minute == 0
+        elsif (seconds % 1.minute).zero?
           minutes = seconds / 1.minute
           minutes == minutes.to_i ? "#{minutes.to_i}.minutes" : "#{minutes}.minutes"
         else
@@ -231,17 +235,20 @@ module FormDurationTracker
         expiry_time = parse_duration(smart_expiry_time)
 
         if expiry_time < max_duration
-          say_status :warning, "⚠️  Time Mismatch Detected!", :yellow
+          say_status :warning, '⚠️  Time Mismatch Detected!', :yellow
           say_status :warning, "  Controller session expires: #{format_duration(expiry_time)}", :yellow
           say_status :warning, "  Model accepts forms up to: #{format_duration(max_duration)}", :yellow
-          say_status :warning, "  Problem: Sessions expire BEFORE validation limit!", :yellow
-          say_status :warning, "  Recommendation: Use --expiry-time #{format_duration(max_duration + calculate_buffer_time(max_duration))}", :yellow
+          say_status :warning, '  Problem: Sessions expire BEFORE validation limit!', :yellow
+          say_status :warning,
+                     "  Recommendation: Use --expiry-time #{format_duration(max_duration + calculate_buffer_time(max_duration))}", :yellow
         elsif @auto_synced
-          say_status :create, "⏱️  Time Sync: expiry_time auto-set to #{smart_expiry_time} (#{options[:validate_max_duration]} + buffer)", :green
+          say_status :create,
+                     "⏱️  Time Sync: expiry_time auto-set to #{smart_expiry_time} (#{options[:validate_max_duration]} + buffer)", :green
         elsif expiry_time > max_duration * 2
-          say_status :info, "ℹ️  Session expiry (#{format_duration(expiry_time)}) is much longer than max (#{format_duration(max_duration)})", :blue
+          say_status :info,
+                     "ℹ️  Session expiry (#{format_duration(expiry_time)}) is much longer than max (#{format_duration(max_duration)})", :blue
         elsif !@auto_synced && options[:expiry_time] != '2.hours'
-          say_status :success, "✓ Time settings are consistent", :green
+          say_status :success, '✓ Time settings are consistent', :green
         end
       end
 
@@ -249,8 +256,8 @@ module FormDurationTracker
         parts = ["track_form_duration :#{attribute_name}"]
         config_options = []
 
-        config_options << "prevent_future: true" if options[:prevent_future]
-        config_options << "prevent_update: true" if options[:prevent_update]
+        config_options << 'prevent_future: true' if options[:prevent_future]
+        config_options << 'prevent_update: true' if options[:prevent_update]
         config_options << "validate_max_duration: #{options[:validate_max_duration]}" if options[:validate_max_duration]
         config_options << "validate_min_duration: #{options[:validate_min_duration]}" if options[:validate_min_duration]
 
@@ -270,10 +277,10 @@ module FormDurationTracker
         effective_expiry_time = smart_expiry_time
         config_options << "expiry_time: #{effective_expiry_time}" if options[:expirable]
 
-        config_options << "on: :new" if options[:auto_initialize]
+        config_options << 'on: :new' if options[:auto_initialize]
 
         if options[:auto_params] == false
-          config_options << "auto_params: false"
+          config_options << 'auto_params: false'
         elsif options[:auto_params_on].present?
           actions_array = options[:auto_params_on].map { |a| ":#{a}" }.join(', ')
           config_options << "auto_params: [#{actions_array}]"
@@ -304,13 +311,13 @@ module FormDurationTracker
       cleanup_#{attribute_name}_session
         RUBY
 
-        gsub_file controller_file, /(def create\n)(.*?)(if @#{model_file_name}\.save\n)/m do |match|
+        gsub_file controller_file, /(def create\n)(.*?)(if @#{model_file_name}\.save\n)/m do |_match|
           "def create\n#{create_action_code}"
         end
 
         # Inject preserve in render
         render_preserve = "      preserve_#{attribute_name}_in_session(@#{model_file_name}.#{attribute_name})\n"
-        gsub_file controller_file, /(else\n)(.*?)(render :new\n)/m do |match|
+        gsub_file controller_file, /(else\n)(.*?)(render :new\n)/m do |_match|
           "else\n#{render_preserve}      render :new\n"
         end
       end

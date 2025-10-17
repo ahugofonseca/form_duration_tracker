@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'simplecov'
 SimpleCov.start do
   add_filter '/spec/'
@@ -21,7 +23,7 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.after(:each) do
+  config.after do
     Timecop.return
   end
 end

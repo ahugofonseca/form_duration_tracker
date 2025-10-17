@@ -19,20 +19,18 @@ module FormDurationTracker
 
         define_method("initialize_#{attribute_name}_session") do
           current_action = respond_to?(:action_name) ? action_name.to_sym : nil
-          is_edit_action = [:edit, :update].include?(current_action)
+          is_edit_action = %i[edit update].include?(current_action)
 
-          if auto_cleanup && !is_edit_action
-            cleanup_form_timestamp(session_key, expiry_key, expirable)
+          cleanup_form_timestamp(session_key, expiry_key, expirable) if auto_cleanup && !is_edit_action
+
+          return if is_edit_action
+
+          if expirable
+            cleanup_expired_form_timestamp(session_key, expiry_key)
+            session[expiry_key] = expiry_time.from_now.to_s
           end
 
-          unless is_edit_action
-            if expirable
-              cleanup_expired_form_timestamp(session_key, expiry_key)
-              session[expiry_key] = expiry_time.from_now.to_s
-            end
-
-            session[session_key] = Time.zone.now.to_s
-          end
+          session[session_key] = Time.zone.now.to_s
         end
 
         define_method("#{attribute_name}_from_session") do
@@ -66,9 +64,9 @@ module FormDurationTracker
             return unless timestamp
 
             target_key = param_key || controller_name.singularize.to_sym
-            if params[target_key].respond_to?(:[]=)
-              params[target_key][attribute_name] ||= timestamp
-            end
+            return unless params[target_key].respond_to?(:[]=)
+
+            params[target_key][attribute_name] ||= timestamp
           end
 
           before_action only: auto_params do
@@ -76,10 +74,10 @@ module FormDurationTracker
           end
         end
 
-        if on_actions.present?
-          before_action only: on_actions do
-            send("initialize_#{attribute_name}_session")
-          end
+        return unless on_actions.present?
+
+        before_action only: on_actions do
+          send("initialize_#{attribute_name}_session")
         end
       end
 
@@ -104,8 +102,6 @@ module FormDurationTracker
         inferred
       end
     end
-
-    private
 
     def get_form_timestamp(session_key, expiry_key, expirable)
       return nil unless session[session_key]
